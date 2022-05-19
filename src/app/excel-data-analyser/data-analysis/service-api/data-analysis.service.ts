@@ -24,10 +24,12 @@ export class DataAnalysisService {
   public getEmployeeData<T>(path: string): Observable<any> {
     return this.http.get(this.path(path), {});
   }
-  public getList<T>(path: string): Observable<any> {
-    return this.http.get(this.path(path), {});
+  public getList<T>(path: string,data:any): Observable<any> {
+    return this.http.get(this.path(path), data);
   }
-  
+  public search<T>(path: string,data:any): Observable<any> {
+    return this.http.post(this.path(path), data);
+  }
   private setParameter(routerParams: Params): HttpParams {
     let queryParams = new HttpParams();
     for (const key in routerParams) {

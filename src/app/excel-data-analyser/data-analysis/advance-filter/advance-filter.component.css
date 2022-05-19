@@ -1,0 +1,18 @@
+.full-width{
+    width: 100% !important;
+    margin-bottom: 5px;
+    border: 1px solid !important;
+}
+.btn-apply {
+    color: #fff;
+    background: #333333;
+    padding: 4px 15px;
+    font-size: 13px;
+    font-weight: 700; 
+    margin-left: 8px;
+  }
+  .mb2-mt2{
+    margin-top: 2px;
+    margin-bottom: 2px;
+  }
+  

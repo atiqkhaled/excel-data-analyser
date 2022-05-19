@@ -1,0 +1,37 @@
+<form>
+  <!-- showableColumnWithTypes:{{showableColumnWithTypes.length}} -->
+  <div class="col-md-12 col-sm-12 col-lg-12" *ngIf="showableColumnWithTypes.length>0" style="overflow-y: auto;" >
+    <table class="table table-hover txt-tbl">
+      <thead>
+      <tr>
+        <th *ngFor="let head of showableColumnWithTypes"  class="txt" scope="col"  (click)="sort(head.key)">
+          {{head.key | uppercase}}
+          <ng-container *ngIf="head.key">
+            <i class="fa text-warning" [ngClass]="{
+              'fa-sort-asc': (this.sortBy === head.key && sortType===1),
+              'fa-sort-desc': (this.sortBy === head.key && sortType===-1),
+              'fa-sort text-muted': this.sortBy !== head.key
+            }"></i>
+          </ng-container>
+  
+        </th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr *ngFor="let employee of tableDetails">
+        <td *ngFor="let head of showableColumnWithTypes">
+          <span *ngIf="head.type=='Date'">{{employee[head.key] | date}}</span>
+          <span *ngIf="head.type!='Date'" >{{employee[head.key]}}</span>
+          
+        </td>
+      </tr>
+      </tbody>
+    </table>
+    <pagination (pageSizeChange)="gotoPage($event)" [totalItems]="total" [size]="pageSize" [currentPage]="page"></pagination>
+  
+  </div>
+
+  <!-- <div class="d-flex justify-content-between p-2">
+  </div> -->
+
+</form>

@@ -46,8 +46,20 @@ export class DataMappingComponent implements OnInit {
   tableName: string;
   mapperName: string;
   mappedContent: string;
+  fileId: string;
+  fileName: string;
 
   ngOnInit(): void {
+
+    this.route.queryParams
+      .subscribe(params => {
+        console.log(params); // { category: "fiction" }
+        this.fileId = params["fileId"];
+        this.fileName = params["fileName"];
+        console.log("File Id "+this.fileId);
+      }
+    );
+
     this.getTableList();
     this.path = this.route.snapshot.routeConfig.path;
   }
@@ -75,18 +87,20 @@ export class DataMappingComponent implements OnInit {
       .subscribe(columns => {
         this.showTable = true;
         this.dbColumnList = columns;
-        this.getMapperNames(event.value);
-        this.getExcelHeaderList(0);
+        this.getMapperNames(schema);
+        this.getExcelHeaderList();
       });
 
     this.modelName = schema;
     this.tableName = tableName;
   }
 
-  getExcelHeaderList(fileId) {
-    this.mappingService.getExcelHeaders(fileId)
+  getExcelHeaderList() {
+    let queryParam = { "fileId": this.fileId };
+    this.mappingService.getExcelHeaders(queryParam)
       .subscribe(headers => {
         this.excelHeaderList = headers.data;
+        this.excelHeaderList.push("");
       });
   }
 
@@ -123,6 +137,7 @@ export class DataMappingComponent implements OnInit {
       diaLogRef.afterClosed().subscribe(result => {
         if (result) {
           this.mapperName = result;
+          mapperContent["fileId"] = this.fileId;
           this.saveMapping(mapperContent);
         }
       })
@@ -133,8 +148,9 @@ export class DataMappingComponent implements OnInit {
   }
 
   onViewMapping(mapperContent) {
+    let queryParam = { "fileName": this.fileName };
     const dataMap = JSON.stringify(Object.fromEntries(mapperContent.entries()));
-    this.mappingService.getExcelDataWithMapping(dataMap)
+    this.mappingService.getExcelDataWithMapping(dataMap, queryParam)
       .subscribe(mappedData => {
         this.showMapperView = true;
         this.tabledata = mappedData.data;
@@ -152,7 +168,10 @@ export class DataMappingComponent implements OnInit {
     }
 
     this.mappingService.updateMapping(updatedMapper)
-      .subscribe((updatedMapper) => this.showSuccesMessage());
+      .subscribe((updatedMapper) => {
+        this.showSuccesMessage();
+        this.navigateToDataIngestion();
+      });
   }
 
   showSuccesMessage() {
@@ -169,13 +188,15 @@ export class DataMappingComponent implements OnInit {
       modelName: this.modelName,
       tableName : this.tableName,
       mapperName: this.mapperName,
-      modelContent: JSON.stringify(Object.fromEntries(mapperContent.entries()))
+      modelContent: JSON.stringify(Object.fromEntries(mapperContent.entries())),
+      fileId : this.fileId
     }
 
     this.mappingService.saveMapping(mapper)
       .subscribe((response) => {
         this.showSuccesMessage();
         this.setMapperSelectedAfterSave(response["mapResponse"]);
+        this.navigateToDataIngestion();
       });
   }
 
@@ -183,6 +204,10 @@ export class DataMappingComponent implements OnInit {
     let option = { _id: mapper["_id"], mapperName: mapper["mapperName"] };
     this.mapperNameList.push(option);
     this.selectedMapperId = mapper["_id"];
+  }
+
+  navigateToDataIngestion() {
+    this.router.navigate(['']);
   }
 
 }

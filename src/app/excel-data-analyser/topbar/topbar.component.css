@@ -6,7 +6,8 @@
   height: 60px;
   display: flex;
   align-items: center;
-  background-color: #1976d2;
+  /* background-color: #1976d2; */
+  background-color: #333333;
   color: white;
   font-weight: 600;
 }
@@ -67,6 +68,7 @@ svg.material-icons:not(:last-child) {
   height: 16px;
   width: 168px;
 }
+
 
 .card-container .card:not(.highlight-card) {
   cursor: pointer;

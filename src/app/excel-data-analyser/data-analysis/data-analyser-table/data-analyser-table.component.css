@@ -1,0 +1,8 @@
+.txt {
+    font-size: 13px;
+    color: #333333;
+    font-weight: bold;
+  }
+  .txt-tbl {
+    font-size: 13px !important;
+  }

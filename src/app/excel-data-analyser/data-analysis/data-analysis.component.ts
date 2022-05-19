@@ -8,6 +8,12 @@ import { DataMappingService } from '../data-mapping/services/data-mapping.servic
 // import * as XLSX from "xlsx";
 import { Workbook } from 'exceljs';
 import * as fs from 'file-saver';
+import { LabelType, Options } from '@angular-slider/ngx-slider';
+import { AnalysisHttpHandler } from './service-api/analysis-http.handler';
+import {TabViewModule} from 'primeng/tabview';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { SubSink } from 'subsink';
+
 @Component({
   selector: 'app-data-analysis',
   templateUrl: './data-analysis.component.html',
@@ -26,11 +32,13 @@ export class DataAnalysisComponent implements OnInit {
   details: EmpDetails[];
   loading: boolean = true;
   showFooTable: boolean = true;
-
+  criteriaViews: any;
   isDataAnlaysis: boolean;
   isDataIngestion: boolean;
   isDataMapping: boolean;
   displayCriteriaAddComponents: boolean;
+  displayAdvanceFiltersComponents: boolean;
+
   displayViewColumnSection: boolean;
 
   users: Array<any>;
@@ -39,19 +47,26 @@ export class DataAnalysisComponent implements OnInit {
   permissions: Array<any> = [];
   showableColumn: Array<any>;
   columnToShow: Array<any> = [];
-  tableName:string;
+  tableName: string;
+  columnWithTypes: any = [];
+  payloadFiltersList:any
+  activeIndex:Number;
+  subs = new SubSink();
 
   path: string;
   constructor(
-    private router: Router,
+    private analysisHttpService: AnalysisHttpHandler,
+    private _snackBar: MatSnackBar,private router:Router,
     private route: ActivatedRoute,
     private cd: ChangeDetectorRef,
     private mappingService: DataMappingService,
     private dataAnalysisService: DataAnalysisService,
-  ) { }
+    private activatedRouter: ActivatedRoute,
+  ) {
+   }
   ngOnInit(): void {
     this.loading = false;
-    this.tableName="EMPLOYEE";
+    this.tableName = "";
 
     this.users = [
       { id: 1, name: 'Sam', permission: [] },
@@ -76,162 +91,64 @@ export class DataAnalysisComponent implements OnInit {
 
 
     this.displayCriteriaAddComponents = false;
+    this.activeIndex=0;
+    this.subs.sink = this.activatedRouter.queryParams.subscribe((params:any) => {
+      const newParam = { ...params };
+      let tableName= newParam.tableName;
+      debugger;
+      if(tableName){
+        this.tableName =tableName.toString();
+        this.value=tableName.toString();
+        // this.fetchList(this.tableName.toUpperCase());
+
+      }
+    });
+
+    
   }
-  
   fetchList(event) {
     if (event === 'EMPLOYEE') {
-      this.tableName='EMPLOYEE';
-      let queryParam = { "collectionName": 'Employee' };
-      this.mappingService.getTableColumns(queryParam)
-        .subscribe(columns => {
-          console.log(columns);
-          this.columnHeaders = columns;
-          this.columnToShow = columns;
-          this.selectAllColumns = true;
-          this.showableColumn=columns;
-          this.checkAllValue();
-        });
+      this.tableName = 'EMPLOYEE';
     }
     if (event === 'COMPANY') {
-      this.tableName='COMPANY';
-      let queryParam = { "collectionName": 'Company' };
-      this.mappingService.getTableColumns(queryParam)
-        .subscribe(columns => {
-          console.log(columns);
-          this.columnHeaders = columns;
-          this.columnToShow = columns;
-          this.selectAllColumns = true;
-          this.showableColumn=columns;
-          this.checkAllValue();
-        });
+      this.tableName = 'COMPANY';
     }
-  }
+    this.GetCriteriaList();
 
-  selectedCriteria(criteriaViews) {
-    console.log(criteriaViews);
   }
-  onCriteriaViewClick() {
-    this.displayCriteriaAddComponents = true;
-  }
-
-  onViewColumnsClick() {
-
-    this.displayViewColumnSection = true;
-    if(this.showableColumn==null){
-      if (this.tableName === 'EMPLOYEE') {
-        let queryParam = { "collectionName": 'Employee' };
-        this.mappingService.getTableColumns(queryParam)
-          .subscribe(columns => {
-            this.columnHeaders = columns;
-            this.columnToShow = columns;
-            this.selectAllColumns = true;
-            this.showableColumn=columns;
-            this.checkAllValue();
-          });
-      }
-      if (this.tableName === 'COMPANY') {
-        let queryParam = { "collectionName": 'Company' };
-        this.mappingService.getTableColumns(queryParam)
-          .subscribe(columns => {
-            this.columnHeaders = columns;
-            this.columnToShow = columns;
-            this.selectAllColumns = true;
-            this.showableColumn=columns;
-            this.checkAllValue();
-          });
-      }
-    }
-  }
-
-  checkAllValue() {
-    this.columnHeaders.forEach((v, i) => {
-      if (this.selectAllColumns) {
-        this.permissions[i] = true;
-      } else {
-        this.permissions[i] = false;
-      }
+  GetCriteriaList() {
+    this.analysisHttpService.get(`GetCriteriaView`).subscribe(data => {
+      this.criteriaViews=data;
+    }, err => {
+      console.log(err);
     })
   }
-
-  checkSingleColumn() {
-    this.selectAllColumns = false;
-  }
-
-  onApplyColumnsView() {
-    this.displayViewColumnSection = false;
-    this.showableColumn = [];
-    this.columnToShow = [];
-    this.columnHeaders.forEach((value, i) => {
-      if (this.permissions[i]) {
-        this.columnToShow.push(value);
-      }
-    })
-
-    this.showableColumn = this.columnToShow;
-    // this.columnHeaders=this.showableColumn;
-  }
-
-
-  onExportDataClick() {
-   
-    var query = ``;
-    if(this.tableName==="EMPLOYEE"){
-      query = `getSortedEmployeeData?sortBy=name&sortType=-1&pageIndex=1&pageSize=1000000`;
-    }
-    this.dataAnalysisService.getList(query)
-      .subscribe(data => {
-        console.log(data);
-        this.details = data.data;
-        this.exportExel();
+  handleClose(e) {
+    var obj=this.criteriaViews[e.index-1];
+    this.analysisHttpService.get(`deleteCriteriaView?id=`+obj._id).subscribe(data => {
+      this._snackBar.open('Tab View has been deleted successfully', 'Ok', {
+        duration: 3000,
+        verticalPosition: 'top',
+        horizontalPosition: 'center',
+        panelClass: 'my-custom-snackbar'
       });
-   
-  }
-  exportExel(){
-    var Header = this.showableColumn.map((name) => {
-      return name[0].toUpperCase() + name.slice(1)
-    });
-    var showableColumnData = JSON.parse(JSON.stringify(this.details, this.showableColumn));
-
-    var dataForExcel = [];
-    showableColumnData.forEach((row: any) => {
-      dataForExcel.push(Object.values(row))
-    })
-
-   
-    let workbook = new Workbook();
-    let worksheet = workbook.addWorksheet('Sheet1');
-
-    let headerRow = worksheet.addRow(Header);
-    headerRow.eachCell((cell, number) => {
-      cell.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: '4167B8' },
-        bgColor: { argb: '' }
-      }
-      cell.font = {
-        bold: true,
-        color: { argb: 'FFFFFF' },
-        size: 12
-      }
-    })
-
-    dataForExcel.forEach(d => {
-      worksheet.addRow(d);
-    }
-    );
-
-    worksheet.columns.forEach(column => {
-      const lengths = column.values.map(v => v.toString().length);
-      const maxLength = Math.max(...lengths.filter(v => typeof v === 'number')) + 2;
-      column.width = maxLength;
-    });
-
-    workbook.xlsx.writeBuffer().then((data) => {
-      let blob = new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      fs.saveAs(blob, 'DataSheet_' + new Date().toLocaleString() + '.xlsx');
+      this.reloadCurrentRoute();
+      e.close();
+    }, err => {
+      console.log(err);
     })
   }
-
-
+  reloadCurrentRoute() {
+    const random = Math.random().toFixed(5);
+    this.router.navigate([], {
+      relativeTo: this.activatedRouter,
+      queryParams: {tableName: this.tableName,random},
+      queryParamsHandling: 'merge',
+    });
+    // const currentUrl = this.router.url;
+    // this.router.navigateByUrl('/', {skipLocationChange: true}).then(() => {
+    //     this.router.navigate([currentUrl]);
+    // });
+}
+  
 }
